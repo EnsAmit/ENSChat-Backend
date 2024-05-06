@@ -3,37 +3,39 @@ import bcrypt from 'bcrypt'
 import { createError } from '../../helpers/common/backend.functions.js'
 import JWT from 'jsonwebtoken'
 
-const registerUser = async (req, res) => {
-    const { firstName, lastName, email, password } = req.body
+const registerUser = async (req, res, next) => {
+    try {
+        const { firstName, lastName, email, password } = req.body
+        const isUserExist = await User.findOne({ email })
+        if (isUserExist) {
+            next(createError(403, "User already exists"))
+            return
 
-    const isUserExist = await User.findOne({ email })
-    if (isUserExist) {
-        //    return res.status(400).json({mssge:"User already exists"})
-        return next(createError(400, "User already exists"))
+        }
+        if (!firstName || !email || !password || firstName == "" || password == "" || email == "") {
+            next(createError(403, "Please Enter all the Feilds"))
+            return;
+        }
 
+        const newUser = await User.create({
+            firstName,
+            lastName,
+            email,
+            password
+        })
+
+        if (newUser) {
+            res.status(201).json({
+                message: "registration successfull",
+            },)
+        }
+        else {
+            next(createError(401, "user not found"))
+            return;
+        }
     }
-    if (!firstName || !email || !password || firstName == "" || password == "" || email == "") {
-        // return res.status(400).json({mssge:"Please Enter all the Feilds"})
-        return next(createError(40, "Please Enter all the Feilds"))
-    }
-
-    const newUser = await User.create({
-        firstName,
-        lastName,
-        email,
-        password
-    })
-
-    if (newUser) {
-        res.status(201).json({
-            message: "registration successfull",
-            //this time we generate token in userExist not usercreated so we can implement the authorization
-
-        },)
-    }
-    else {
-        // res.status(400).json({mssge:"user not found"})
-        next(createError(200, "user not found"))
+    catch (error) {
+        next(error);
     }
 }
 
@@ -43,15 +45,16 @@ const loginUser = async (req, res, next) => {
         const { email, password } = req.body;
 
         if (!email || !password || email == "" || password == "") {
-            return res.status(400).json({ mssge: "fill all fields" })
+            next(createError(403, "fill all fields"))
+            return;
         }
 
         const userExist = await User.findOne({ email })
-        console.log("userExist", userExist)
+        // console.log("userExist",userExist)
 
         if (!userExist) {
-            return next(createError(400, 'invalid credentials'))
-
+            next(createError(400, 'invalid credentials'))
+            return;
         }
 
         const verifiedUser = await userExist.comparePassword(password)
@@ -63,31 +66,20 @@ const loginUser = async (req, res, next) => {
 
         if (verifiedUser) {
             const token = JWT.sign({ id: userExist._id }, process.env.JWT_SECRET_KEY, { expiresIn: '20hr' })
-
-            // return res.cookie('access-Token',token,{httpOnly:true,expires:token.expiresIn})
-            // .status(200)
-            // .json(
-            //     {
-            //         error:false,
-            //         message:"Admin Login Successfully...!",
-            //         token
-            //     })
             return res.status(200)
                 .json(
                     {
                         error: false,
-                        user: userExist,
+                        data: userExist,
                         message: "Admin Login Successfully...!",
                         token
                     })
-
         }
         else {
             console.log("invalid password or email")
             next(createError(401, "invalid email or password"))
-            // res.status(400).json({mssge:"invalid "})
+            return;
         }
-
     }
     catch (error) {
         console.log('login error', error)
@@ -97,11 +89,10 @@ const loginUser = async (req, res, next) => {
 }
 
 const updateUser = async (req, res, next) => {
-    const userId = req.params.userId;
-
-    const { ...update } = req.body;
-
     try {
+        const userId = req.params.userId;
+        const { ...update } = req.body;
+
         const userExist = await User.findById(userId);
         if (!userExist) {
             return next(createError(400, "User not found"))
@@ -130,18 +121,16 @@ const updateUser = async (req, res, next) => {
     catch (error) {
         next(error)
     }
-
 }
 
 const updatePic = async (req, res, next) => {
-    const userId = req.body.userId;
-    const fileName = req.file.filename;
-    // console.log("userId",userId)
-    // console.log("fileName",fileName)
     try {
+        const userId = req.body.userId;
+        const fileName = req.file.filename;
         const userExist = await User.findById(userId)
         if (!userExist) {
             next(createError(400, "User Not exists"))
+            return;
         }
 
         userExist.picture = fileName;
@@ -151,36 +140,39 @@ const updatePic = async (req, res, next) => {
         if (!result) {
             next(createError(400, ""))
         }
-        return res.status(200).json({ message: "Profile Updated successfuly" })
+        res.status(200).json({ message: "Profile Updated successfuly" })
     }
     catch (error) {
         next(error)
     }
-
-
 }
 
 
 const getProfileData = async (req, res, next) => {
-    const id = req.body.userId;
-    console.log(id)
+    try {
+        const id = req.body.userId;
+        console.log(id)
+        const userExist = await User.findById(id);
+        if (!userExist) {
+            return next(createError(400, "User not found"))
+        }
+        const data = {
+            id: userExist._id,
+            firstName: userExist.firstName,
+            lastName: userExist.lastName,
+            userName: userExist.userName,
+            gender: userExist.gender,
+            about: userExist.about,
+            picture: userExist.picture
 
-    const userExist = await User.findById(id);
-    if (!userExist) {
-        return next(createError(400, "User not found"))
+        }
+        return res.status(200).json(data)
     }
-    const data = {
-        id: userExist._id,
-        firstName: userExist.firstName,
-        lastName: userExist.lastName,
-        userName: userExist.userName,
-        gender: userExist.gender,
-        about: userExist.about,
-        picture: userExist.picture
-
+    catch (error) {
+        next(error)
     }
-    res.status(200).json(data)
 }
-export { 
-    registerUser, loginUser, updateUser, updatePic, getProfileData 
+
+export {
+    registerUser, loginUser, updateUser, updatePic, getProfileData
 }
