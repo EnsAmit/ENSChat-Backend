@@ -4,10 +4,10 @@ import upload from '../../middlewares/files/upload_file.middleware.js'
 
 const appUserDetailsRouterV1 = Router();
 
-appUserDetailsRouterV1.post('/user_login', appUserDetailsController.registerUser);
-appUserDetailsRouterV1.post('/login', appUserDetailsController.loginUser);
-appUserDetailsRouterV1.post('/update/:userId', appUserDetailsController.updateUser);
-appUserDetailsRouterV1.post('/updatePic', upload(), appUserDetailsController.updatePic);
-appUserDetailsRouterV1.post('/profileData', appUserDetailsController.getProfileData);
+appUserDetailsRouterV1.route('/register').post(appUserDetailsController.registerUser);
+appUserDetailsRouterV1.route('/login').post(appUserDetailsController.loginUser);
+appUserDetailsRouterV1.route('/update/:userId').post(appUserDetailsController.updateUser);
+appUserDetailsRouterV1.route('/updatePic').post(upload(), appUserDetailsController.updatePic);
+appUserDetailsRouterV1.route('/profileData').post(appUserDetailsController.getProfileData);
 
 export { appUserDetailsRouterV1 };
