@@ -105,7 +105,6 @@ const updateUser = async (req, res, next) => {
             if (uniqueUserName) {
                 return next(createError(409, "userName alredy present!!!"))
             }
-
         }
 
         //updating field based on user requirement
@@ -151,23 +150,15 @@ const updatePic = async (req, res, next) => {
 
 const getProfileData = async (req, res, next) => {
     try {
-        const id = req.body.userId;
-        console.log(id)
-        const userExist = await User.findById(id);
+        const _id = req.body.userId;
+        console.log(_id)
+        const userExist = await User.find({_id},{firstName:1,lastName:1,userName:1,gender:1,about:1,picture:1});
+        console.log("userExists",userExist)
         if (!userExist) {
-            return next(createError(400, "User not found"))
+            next(createError(400, "User not found"))
         }
-        const data = {
-            id: userExist._id,
-            firstName: userExist.firstName,
-            lastName: userExist.lastName,
-            userName: userExist.userName,
-            gender: userExist.gender,
-            about: userExist.about,
-            picture: userExist.picture
-
-        }
-        return res.status(200).json(data)
+        
+        return res.status(200).json({data:userExist})
     }
     catch (error) {
         next(error)

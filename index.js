@@ -7,6 +7,23 @@ const ensModuleBackendApp = express();
 dbConnect()
 
 ensModuleBackendApp.use(express.json())
+
+//error middleware
+ensModuleBackendApp.use((error,req,res,next)=>{
+    //here we set the default statusCode and message so if we dont send it then default one will send to user
+    const errorStatus =error.status || 500;
+    const errorMessage= error.message || "something went wrong";
+    res.status(errorStatus).json(
+        {
+            error:true,
+            success:false,
+            status:errorStatus,
+            message:errorMessage,
+            stack:error.stack
+        }
+    )
+
+})
 // Define a route handler for the root URL
 ensModuleBackendApp.use('/v1', v1);
 
